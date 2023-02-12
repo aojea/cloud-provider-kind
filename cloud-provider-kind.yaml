@@ -13,7 +13,7 @@ spec:
     - cloud-provider-kind
     - --bind-address=127.0.0.1
     - --client-ca-file=/etc/kubernetes/pki/ca.crt
-    - --cluster-name=kind
+    - --cloud-provider="external"
     - --controllers=*
     - --kubeconfig=/etc/kubernetes/controller-manager.conf
     - --leader-elect=true
