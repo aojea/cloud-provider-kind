@@ -10,8 +10,8 @@ import (
 	"k8s.io/cloud-provider/app"
 	"k8s.io/cloud-provider/app/config"
 	"k8s.io/cloud-provider/options"
+	"k8s.io/component-base/cli"
 	cliflag "k8s.io/component-base/cli/flag"
-	"k8s.io/component-base/logs"
 	_ "k8s.io/component-base/logs/json/register"          // register optional JSON log format
 	_ "k8s.io/component-base/metrics/prometheus/clientgo" // load all the prometheus client-go plugins
 	_ "k8s.io/component-base/metrics/prometheus/version"  // for version metric registration
@@ -27,12 +27,8 @@ func main() {
 	fss := cliflag.NamedFlagSets{}
 	command := app.NewCloudControllerManagerCommand(ccmOptions, cloudInitializer, controllerInitializers(), fss, wait.NeverStop)
 
-	logs.InitLogs()
-	defer logs.FlushLogs()
-
-	if err := command.Execute(); err != nil {
-		os.Exit(1)
-	}
+	code := cli.Run(command)
+	os.Exit(code)
 }
 
 // If custom ClientNames are used, as below, then the controller will not use
