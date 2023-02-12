@@ -139,7 +139,10 @@ jobs:
         /usr/local/bin/kind load docker-image cloud-provider-kind:test --name ${{ env.KIND_CLUSTER_NAME}}
 
         echo "Install cloud-provider-kind"
-        docker cp cloud-provider-kind.yaml ${{ env.KIND_CLUSTER_NAME}}-control-plane:/etc/kubernetes/manifests/cloud-provider-kind.yaml
+        /usr/local/bin/kubectl create -f cloud-provider-kind.yaml
+        /usr/local/bin/kubectl set image ds/cloud-controller-manager cloud-controller-manager=cloud-provider-kind:test -n kube-system
+        # wait until cloud-controller-manager is ready
+        /usr/local/bin/kubectl --namespace=kube-system rollout status daemonset cloud-controller-manager -w --timeout=3m
 
     - name: Get Cluster status
       run: |

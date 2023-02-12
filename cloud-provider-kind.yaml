@@ -1,98 +1,59 @@
+
+---
 apiVersion: v1
-kind: Pod
+kind: ServiceAccount
 metadata:
-  creationTimestamp: null
+  name: cloud-controller-manager
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:cloud-controller-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: cloud-controller-manager
+  namespace: kube-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
   labels:
-    component: cloud-provider-kind
-    tier: control-plane
-  name: cloud-provider-kind
+    k8s-app: cloud-controller-manager
+  name: cloud-controller-manager
   namespace: kube-system
 spec:
-  containers:
-  - command:
-    - cloud-provider-kind
-    - --bind-address=127.0.0.1
-    - --client-ca-file=/etc/kubernetes/pki/ca.crt
-    - --cloud-provider="external"
-    - --controllers=*
-    - --kubeconfig=/etc/kubernetes/controller-manager.conf
-    - --leader-elect=true
-    - --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.crt
-    - --use-service-account-credentials=true
-    - --v=5
-    image: cloud-provider-kind:test
-    imagePullPolicy: IfNotPresent
-    livenessProbe:
-      failureThreshold: 8
-      httpGet:
-        host: 127.0.0.1
-        path: /healthz
-        port: 10258
-        scheme: HTTPS
-      initialDelaySeconds: 10
-      periodSeconds: 10
-      timeoutSeconds: 15
-    name: cloud-provider-kind
-    resources:
-      requests:
-        cpu: 200m
-    startupProbe:
-      failureThreshold: 24
-      httpGet:
-        host: 127.0.0.1
-        path: /healthz
-        port: 10258
-        scheme: HTTPS
-      initialDelaySeconds: 10
-      periodSeconds: 10
-      timeoutSeconds: 15
-    volumeMounts:
-    - mountPath: /etc/ssl/certs
-      name: ca-certs
-      readOnly: true
-    - mountPath: /etc/ca-certificates
-      name: etc-ca-certificates
-      readOnly: true
-    - mountPath: /etc/kubernetes/pki
-      name: k8s-certs
-      readOnly: true
-    - mountPath: /etc/kubernetes/controller-manager.conf
-      name: kubeconfig
-      readOnly: true
-    - mountPath: /usr/local/share/ca-certificates
-      name: usr-local-share-ca-certificates
-      readOnly: true
-    - mountPath: /usr/share/ca-certificates
-      name: usr-share-ca-certificates
-      readOnly: true
-  hostNetwork: true
-  priorityClassName: system-node-critical
-  securityContext:
-    seccompProfile:
-      type: RuntimeDefault
-  volumes:
-  - hostPath:
-      path: /etc/ssl/certs
-      type: DirectoryOrCreate
-    name: ca-certs
-  - hostPath:
-      path: /etc/ca-certificates
-      type: DirectoryOrCreate
-    name: etc-ca-certificates
-  - hostPath:
-      path: /etc/kubernetes/pki
-      type: DirectoryOrCreate
-    name: k8s-certs
-  - hostPath:
-      path: /etc/kubernetes/controller-manager.conf
-      type: FileOrCreate
-    name: kubeconfig
-  - hostPath:
-      path: /usr/local/share/ca-certificates
-      type: DirectoryOrCreate
-    name: usr-local-share-ca-certificates
-  - hostPath:
-      path: /usr/share/ca-certificates
-      type: DirectoryOrCreate
-    name: usr-share-ca-certificates
-status: {}
+  selector:
+    matchLabels:
+      k8s-app: cloud-controller-manager
+  template:
+    metadata:
+      labels:
+        k8s-app: cloud-controller-manager
+    spec:
+      serviceAccountName: cloud-controller-manager
+      containers:
+      - name: cloud-controller-manager
+        image: cloud-provider-kind:test
+        command:
+        - cloud-provider-kind
+        - --cloud-provider=kind
+        - --leader-elect=true
+        - --use-service-account-credentials
+        - --v=5
+      tolerations:
+      - key: node.cloudprovider.kubernetes.io/uninitialized
+        value: "true"
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
