@@ -61,6 +61,11 @@ spec:
           initialDelaySeconds: 10
           periodSeconds: 10
           timeoutSeconds: 15
+        env:
+        - name: KUBERNETES_SERVICE_HOST
+          value: 127.0.0.1
+        - name: KUBERNETES_SERVICE_PORT
+          value: 6443
         command:
         - cloud-provider-kind
         - --bind-address=127.0.0.1
