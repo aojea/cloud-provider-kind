@@ -36,11 +36,35 @@ spec:
         k8s-app: cloud-controller-manager
     spec:
       serviceAccountName: cloud-controller-manager
+      hostNetwork: true
       containers:
       - name: cloud-controller-manager
         image: cloud-provider-kind:test
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 8
+          httpGet:
+            host: 127.0.0.1
+            path: /healthz
+            port: 10258
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 15
+        startupProbe:
+          failureThreshold: 24
+          httpGet:
+            host: 127.0.0.1
+            path: /healthz
+            port: 10258
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 15
         command:
         - cloud-provider-kind
+        - --bind-address=127.0.0.1
+        - --master=127.0.0.1:6443
         - --cloud-provider=kind
         - --leader-elect=true
         - --use-service-account-credentials
