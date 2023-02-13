@@ -56,10 +56,8 @@ func controllerInitializers() map[string]app.ControllerInitFuncConstructor {
 }
 
 func cloudInitializer(config *config.CompletedConfig) cloudprovider.Interface {
-	cloudConfig := config.ComponentConfig.KubeCloudShared.CloudProvider
-
 	// initialize cloud provider with the cloud provider name and config file provided
-	cloud, err := provider.InitCloudProvider(cloudConfig.Name, cloudConfig.CloudConfigFile)
+	cloud, err := provider.InitCloudProvider(config.ComponentConfig.KubeCloudShared.ClusterName)
 	if err != nil {
 		klog.Fatalf("Cloud provider could not be initialized: %v", err)
 	}

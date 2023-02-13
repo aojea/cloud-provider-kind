@@ -20,7 +20,7 @@ type cloud struct {
 }
 
 // newCloud creates a new cloud provider from config
-func InitCloudProvider(name string, config string) (cloudprovider.Interface, error) {
+func InitCloudProvider(name string) (cloudprovider.Interface, error) {
 	logger := kindcmd.NewLogger()
 	provider := cluster.NewProvider(
 		cluster.ProviderWithLogger(logger),
