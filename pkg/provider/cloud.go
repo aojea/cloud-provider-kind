@@ -3,6 +3,8 @@ package provider
 import (
 	"io"
 
+	"github.com/aojea/cloud-provider-kind/cmd/app"
+
 	cloudprovider "k8s.io/cloud-provider"
 
 	"sigs.k8s.io/kind/pkg/cluster"
@@ -21,7 +23,7 @@ func init() {
 		)
 		return &cloud{
 			kindClient:  provider,
-			clusterName: "test",
+			clusterName: app.ClusterName,
 		}, nil
 	})
 }
