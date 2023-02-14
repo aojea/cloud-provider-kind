@@ -44,6 +44,7 @@ func (c *cloud) InstanceShutdown(ctx context.Context, node *v1.Node) (bool, erro
 // InstanceMetadata returns the instance's metadata. The values returned in InstanceMetadata are
 // translated into specific fields and labels in the Node object on registration.
 func (c *cloud) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloudprovider.InstanceMetadata, error) {
+	klog.V(2).Infof("Check instace metadata for %s", node.Name)
 	n, err := c.findNodeByName(node.Name)
 	if err != nil {
 		return nil, err
@@ -71,7 +72,7 @@ func (c *cloud) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloudprov
 	if ipv6 != "" {
 		m.NodeAddresses = append(m.NodeAddresses, v1.NodeAddress{Type: v1.NodeInternalIP, Address: ipv6})
 	}
-	klog.V(2).Infof("Check instace metadata for %s: %#v", node.Name, m)
+	klog.V(2).Infof("instance metadata for %s: %#v", node.Name, m)
 	return m, nil
 }
 
@@ -85,5 +86,5 @@ func (c *cloud) findNodeByName(name string) (nodes.Node, error) {
 			return n, nil
 		}
 	}
-	return nil, fmt.Errorf("node with name %s does not exist", name)
+	return nil, fmt.Errorf("node with name %s does not exist on cluster %s", name, c.clusterName)
 }
