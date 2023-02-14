@@ -49,7 +49,8 @@ func (c *cloud) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloudprov
 		return nil, err
 	}
 	m := &cloudprovider.InstanceMetadata{
-		ProviderID:   fmt.Sprintf("kind://%s/kind/%s", c.kindClient, n.String()), // providerID: kind://docker/kind/kind-control-plane
+		// TODO: podman support
+		ProviderID:   fmt.Sprintf("kind://%s/kind/%s", c.clusterName, n.String()), // providerID: kind://<cluster-name>/kind/<node-name>
 		InstanceType: "kind-node",
 		NodeAddresses: []v1.NodeAddress{
 			{
