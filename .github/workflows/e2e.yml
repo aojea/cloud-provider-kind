@@ -51,6 +51,8 @@ jobs:
         sudo cp ${TMP_DIR}/kubectl /usr/local/bin/kubectl
         sudo cp ${TMP_DIR}/kind /usr/local/bin/kind
         sudo chmod +x /usr/local/bin/*
+        # Create folder to store artifacts
+        mkdir -p _artifacts
 
     - name: Create multi node cluster
       run: |
