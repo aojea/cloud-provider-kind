@@ -7,6 +7,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	cloudprovider "k8s.io/cloud-provider"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/kind/pkg/cluster/nodes"
 )
 
@@ -16,6 +17,7 @@ var errNodeNotFound = errors.New("node not found")
 
 // InstanceExists returns true if the instance for the given node exists according to the cloud provider.
 func (c *cloud) InstanceExists(ctx context.Context, node *v1.Node) (bool, error) {
+	klog.V(2).Infof("Check if instace %s exists", node.Name)
 	_, err := c.findNodeByName(node.Name)
 	if err == nil {
 		return true, nil
@@ -28,6 +30,7 @@ func (c *cloud) InstanceExists(ctx context.Context, node *v1.Node) (bool, error)
 
 // InstanceShutdown returns true of the container doesn't exist
 func (c *cloud) InstanceShutdown(ctx context.Context, node *v1.Node) (bool, error) {
+	klog.V(2).Infof("Check if instace %s is shutdown", node.Name)
 	_, err := c.findNodeByName(node.Name)
 	if err == nil {
 		return false, nil
@@ -67,6 +70,7 @@ func (c *cloud) InstanceMetadata(ctx context.Context, node *v1.Node) (*cloudprov
 	if ipv6 != "" {
 		m.NodeAddresses = append(m.NodeAddresses, v1.NodeAddress{Type: v1.NodeInternalIP, Address: ipv6})
 	}
+	klog.V(2).Infof("Check instace metadata for %s: %#v", node.Name, m)
 	return m, nil
 }
 
