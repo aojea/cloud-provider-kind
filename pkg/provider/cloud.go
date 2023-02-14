@@ -1,6 +1,8 @@
 package provider
 
 import (
+	"io"
+
 	cloudprovider "k8s.io/cloud-provider"
 
 	"sigs.k8s.io/kind/pkg/cluster"
@@ -11,6 +13,19 @@ const (
 	ProviderName = "kind"
 )
 
+func init() {
+	cloudprovider.RegisterCloudProvider(ProviderName, func(config io.Reader) (cloudprovider.Interface, error) {
+		logger := kindcmd.NewLogger()
+		provider := cluster.NewProvider(
+			cluster.ProviderWithLogger(logger),
+		)
+		return &cloud{
+			kindClient:  provider,
+			clusterName: "test",
+		}, nil
+	})
+}
+
 var _ cloudprovider.Interface = (*cloud)(nil)
 
 // controller is the KIND implementation of the cloud provider interface
@@ -19,22 +34,10 @@ type cloud struct {
 	kindClient  *cluster.Provider
 }
 
-// newCloud creates a new cloud provider from config
-func InitCloudProvider(name string) (cloudprovider.Interface, error) {
-	logger := kindcmd.NewLogger()
-	provider := cluster.NewProvider(
-		cluster.ProviderWithLogger(logger),
-	)
-
-	return &cloud{
-		clusterName: name,
-		kindClient:  provider,
-	}, nil
-}
-
 // Initialize passes a Kubernetes clientBuilder interface to the cloud provider
 func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stopCh <-chan struct{}) {
-	<-stopCh
+	// TODO: make this parametrizable
+	c.clusterName = "test"
 }
 
 // Clusters returns the list of clusters.

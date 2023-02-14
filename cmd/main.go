@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/aojea/cloud-provider-kind/pkg/provider"
+	_ "github.com/aojea/cloud-provider-kind/pkg/provider" // register cloud provider
 
 	"k8s.io/apimachinery/pkg/util/wait"
 	cloudprovider "k8s.io/cloud-provider"
@@ -56,21 +56,24 @@ func controllerInitializers() map[string]app.ControllerInitFuncConstructor {
 }
 
 func cloudInitializer(config *config.CompletedConfig) cloudprovider.Interface {
+	cloudConfig := config.ComponentConfig.KubeCloudShared.CloudProvider
+
 	// initialize cloud provider with the cloud provider name and config file provided
-	cloud, err := provider.InitCloudProvider(config.ComponentConfig.KubeCloudShared.ClusterName)
+	cloud, err := cloudprovider.InitCloudProvider(cloudConfig.Name, cloudConfig.CloudConfigFile)
 	if err != nil {
 		klog.Fatalf("Cloud provider could not be initialized: %v", err)
 	}
 	if cloud == nil {
 		klog.Fatalf("Cloud provider is nil")
 	}
-
-	if !cloud.HasClusterID() {
-		if config.ComponentConfig.KubeCloudShared.AllowUntaggedCloud {
-			klog.Warning("detected a cluster without a ClusterID.  A ClusterID will be required in the future.  Please tag your cluster to avoid any future issues")
-		} else {
-			klog.Fatalf("no ClusterID found.  A ClusterID is required for the cloud provider to function properly.  This check can be bypassed by setting the allow-untagged-cloud option")
+	/*
+		if !cloud.HasClusterID() {
+			if config.ComponentConfig.KubeCloudShared.AllowUntaggedCloud {
+				klog.Warning("detected a cluster without a ClusterID.  A ClusterID will be required in the future.  Please tag your cluster to avoid any future issues")
+			} else {
+				klog.Fatalf("no ClusterID found.  A ClusterID is required for the cloud provider to function properly.  This check can be bypassed by setting the allow-untagged-cloud option")
+			}
 		}
-	}
+	*/
 	return cloud
 }
