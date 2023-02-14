@@ -9,6 +9,7 @@ import (
 
 	"sigs.k8s.io/kind/pkg/cluster"
 	kindcmd "sigs.k8s.io/kind/pkg/cmd"
+	"sigs.k8s.io/kind/pkg/log"
 )
 
 const (
@@ -17,7 +18,16 @@ const (
 
 func init() {
 	cloudprovider.RegisterCloudProvider(ProviderName, func(config io.Reader) (cloudprovider.Interface, error) {
+		// TODO get this from the flags
 		logger := kindcmd.NewLogger()
+		type verboser interface {
+			SetVerbosity(log.Level)
+		}
+		v, ok := logger.(verboser)
+		if ok {
+			v.SetVerbosity(2)
+		}
+
 		provider := cluster.NewProvider(
 			cluster.ProviderWithLogger(logger),
 		)
@@ -38,8 +48,7 @@ type cloud struct {
 
 // Initialize passes a Kubernetes clientBuilder interface to the cloud provider
 func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stopCh <-chan struct{}) {
-	// TODO: make this parametrizable
-	c.clusterName = "test"
+	c.clusterName = app.ClusterName
 }
 
 // Clusters returns the list of clusters.
