@@ -13,36 +13,10 @@ env:
   KIND_CLUSTER_NAME: "kind-cloud"
 
 jobs:
-  build:
-    name: build
-    runs-on: ubuntu-latest
-    steps:
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: ${{ env.GO_VERSION }}
-      id: go
-
-    - name: Check out code
-      uses: actions/checkout@v2
-
-    - name: Build
-      run: |
-        docker build -t cloud-provider-kind:test -f Dockerfile .
-        mkdir _output
-        docker save cloud-provider-kind:test > _output/cloud-provider-kind-image.tar
-
-    - uses: actions/upload-artifact@v2
-      with:
-        name: test-image
-        path: _output/cloud-provider-kind-image.tar
-
   e2e:
     name: e2e
     runs-on: ubuntu-latest
     timeout-minutes: 100
-    needs:
-      - build
     strategy:
       fail-fast: false
       matrix:
@@ -80,24 +54,7 @@ jobs:
 
     - name: Create multi node cluster
       run: |
-        # output_dir
-        mkdir -p _artifacts
-        # create cluster
-        cat <<EOF | /usr/local/bin/kind create cluster \
-          --name ${{ env.KIND_CLUSTER_NAME}}           \
-          --image kindest/node:${{ env.K8S_VERSION }}  \
-          -v7 --wait 1m --retain --config=-
-        kind: Cluster
-        apiVersion: kind.x-k8s.io/v1alpha4
-        networking:
-          ipFamily: ${IP_FAMILY}
-          kubeProxyMode: "none"
-        nodes:
-        - role: control-plane
-        - role: worker
-        - role: worker
-        EOF
-        # dump the kubeconfig for later
+        /usr/local/bin/kind create cluster --name ${{ env.KIND_CLUSTER_NAME}} --config kind.yaml
         /usr/local/bin/kind get kubeconfig --name ${{ env.KIND_CLUSTER_NAME}} > _artifacts/kubeconfig.conf
 
     - name: Workaround CoreDNS for IPv6 airgapped
@@ -132,17 +89,11 @@ jobs:
       with:
         name: test-image
 
-    - name: Install cloud-provider-kind
+    - name: Run cloud-provider-kind
       run: |
-        # preload cloud-provider-kind image
-        docker load --input cloud-provider-kind-image.tar
-        /usr/local/bin/kind load docker-image cloud-provider-kind:test --name ${{ env.KIND_CLUSTER_NAME}}
-
-        echo "Install cloud-provider-kind"
-        /usr/local/bin/kubectl create -f cloud-provider-kind.yaml
-        /usr/local/bin/kubectl set image ds/cloud-controller-manager cloud-controller-manager=cloud-provider-kind:test -n kube-system
-        # wait until cloud-controller-manager is ready
-        /usr/local/bin/kubectl --namespace=kube-system rollout status daemonset cloud-controller-manager -w --timeout=3m
+        make
+        /usr/local/bin/kind get kubeconfig --name ${{ env.KIND_CLUSTER_NAME}} > bin/kubeconfig.conf
+        nohup bin/cloud-provider-kind --cloud-provider kind --kubeconfig $PWD/bin/kubeconfig --cluster-name test --controllers "*" --v 5 --leader-elect=false 2>&1 > ./_artifacts/logs/ccm-kind.log &
 
     - name: Get Cluster status
       run: |
