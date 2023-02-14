@@ -97,7 +97,7 @@ jobs:
       run: |
         make
         /usr/local/bin/kind get kubeconfig --name ${{ env.KIND_CLUSTER_NAME}} > bin/kubeconfig.conf
-        nohup bin/cloud-provider-kind --cloud-provider kind --kubeconfig $PWD/bin/kubeconfig --cluster-name test --controllers "*" --v 5 --leader-elect=false 2>&1 > ./_artifacts/logs/ccm-kind.log &
+        nohup bin/cloud-provider-kind --cloud-provider kind --kubeconfig $PWD/bin/kubeconfig --cluster-name test --controllers "*" --v 5 --leader-elect=false 2>&1 > ./_artifacts/ccm-kind.log &
 
     - name: Get Cluster status
       run: |
@@ -134,6 +134,7 @@ jobs:
       if: always()
       run: |
         /usr/local/bin/kind export logs --name ${KIND_CLUSTER_NAME} --loglevel=debug ./_artifacts/logs
+        cp ./_artifacts/ccm-kind.log ./_artifacts/logs
 
     - name: Upload logs
       if: always()
