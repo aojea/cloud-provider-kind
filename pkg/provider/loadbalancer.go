@@ -34,6 +34,9 @@ func (c *cloud) EnsureLoadBalancer(ctx context.Context, clusterName string, serv
 		return nil, err
 	}
 
+	// configure loadbalancer
+
+	// report status
 	name := loadBalancerName(clusterName, service)
 	ipv4, ipv6, err := containerIPs(name)
 	if err != nil {

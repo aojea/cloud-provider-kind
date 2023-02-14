@@ -44,8 +44,9 @@ var _ cloudprovider.Interface = (*cloud)(nil)
 
 // controller is the KIND implementation of the cloud provider interface
 type cloud struct {
-	clusterName string // name of the kind cluster
-	kindClient  *cluster.Provider
+	clusterName  string // name of the kind cluster
+	kindClient   *cluster.Provider
+	lbController *loadbalancer.Server
 }
 
 // Initialize passes a Kubernetes clientBuilder interface to the cloud provider
@@ -55,7 +56,8 @@ func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, 
 	// Loadbalancer control-plane
 	ctx, _ := wait.ContextForChannel(stopCh)
 	port := 10001
-	loadbalancer.RunServer(ctx, port)
+	c.lbController = loadbalancer.NewServer()
+	c.lbController.Run(ctx, port)
 }
 
 // Clusters returns the list of clusters.

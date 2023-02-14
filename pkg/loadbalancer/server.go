@@ -29,10 +29,20 @@ const (
 	grpcMaxConcurrentStreams = 1000000
 )
 
-func RunServer(ctx context.Context, port int) {
-	snapshotCache := cache.NewSnapshotCache(false, cache.IDHash{}, nil)
-	xdsserver := xds.NewServer(ctx, snapshotCache, nil)
+type Server struct {
+	cache  cache.Cache
+	server xds.Server
+}
 
+func NewServer() *Server {
+	snapshotCache := cache.NewSnapshotCache(false, cache.IDHash{}, nil)
+	return &Server{
+		cache: snapshotCache,
+	}
+}
+
+func (s *Server) Run(ctx context.Context, port int) {
+	s.server = xds.NewServer(ctx, s.cache, nil)
 	// gRPC golang library sets a very small upper bound for the number gRPC/h2
 	// streams over a single TCP connection. If a proxy multiplexes requests over
 	// a single connection to the management server, then it might lead to
@@ -57,13 +67,13 @@ func RunServer(ctx context.Context, port int) {
 	}
 
 	// register services
-	discoverygrpc.RegisterAggregatedDiscoveryServiceServer(grpcServer, xdsserver)
-	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, xdsserver)
-	clusterservice.RegisterClusterDiscoveryServiceServer(grpcServer, xdsserver)
-	routeservice.RegisterRouteDiscoveryServiceServer(grpcServer, xdsserver)
-	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, xdsserver)
-	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, xdsserver)
-	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, xdsserver)
+	discoverygrpc.RegisterAggregatedDiscoveryServiceServer(grpcServer, s.server)
+	endpointservice.RegisterEndpointDiscoveryServiceServer(grpcServer, s.server)
+	clusterservice.RegisterClusterDiscoveryServiceServer(grpcServer, s.server)
+	routeservice.RegisterRouteDiscoveryServiceServer(grpcServer, s.server)
+	listenerservice.RegisterListenerDiscoveryServiceServer(grpcServer, s.server)
+	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, s.server)
+	runtimeservice.RegisterRuntimeDiscoveryServiceServer(grpcServer, s.server)
 
 	go func() {
 		log.Printf("management server listening on %d\n", port)

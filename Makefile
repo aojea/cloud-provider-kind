@@ -24,6 +24,9 @@ test:
 lint:
 	hack/lint.sh
 
+update:
+	go mod tidy && go mod vendor
+
 # get image name from directory we're building
 IMAGE_NAME=cloud-provider-kind
 # docker image registry, default to upstream
