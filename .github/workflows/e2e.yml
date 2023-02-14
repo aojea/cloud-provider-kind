@@ -96,7 +96,7 @@ jobs:
     - name: Run cloud-provider-kind
       run: |
         make
-        nohup bin/cloud-provider-kind --cloud-provider kind --kubeconfig $PWD/_artifacts/kubeconfig.conf --cluster-name test --controllers "*" --v 5 --leader-elect=false 2>&1 > ./_artifacts/ccm-kind.log &
+        nohup bin/cloud-provider-kind --cloud-provider kind --kubeconfig $PWD/_artifacts/kubeconfig.conf --cluster-name test --controllers "*" --v 5 --leader-elect=false > ./_artifacts/ccm-kind.log 2>&1 &
 
     - name: Get Cluster status
       run: |
