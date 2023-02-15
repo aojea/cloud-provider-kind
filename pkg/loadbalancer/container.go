@@ -11,7 +11,7 @@ import (
 )
 
 // Image defines the loadbalancer image:tag
-const Image = "gcr.io/distroless/static-debian11:debug"
+const Image = "kindest/haproxy:v20221220-7705dd1a"
 
 // KIND CONSTANTS
 const fixedNetworkName = "kind"
@@ -39,7 +39,7 @@ func restartContainer(name string) error {
 	return nil
 }
 
-func execContainer(name string, command []string, stdin io.Reader) (stdout io.Writer, stderr io.Writer, err error) {
+func execContainer(name string, command []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
 	args := []string{"exec", "--privileged"}
 	if stdin != nil {
 		args = append(args, "-i")
@@ -50,10 +50,13 @@ func execContainer(name string, command []string, stdin io.Reader) (stdout io.Wr
 	if stdin != nil {
 		cmd.Stdin = stdin
 	}
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	err = cmd.Run()
-	return
+	if stdout != nil {
+		cmd.Stdout = stdout
+	}
+	if stderr != nil {
+		cmd.Stderr = stderr
+	}
+	return cmd.Run()
 }
 
 func containerIPs(name string) (ipv4 string, ipv6 string, err error) {

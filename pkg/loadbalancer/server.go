@@ -1,13 +1,18 @@
 package loadbalancer
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"os"
+	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	cloudprovider "k8s.io/cloud-provider"
+	netutils "k8s.io/utils/net"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 )
 
@@ -83,9 +88,57 @@ func (s *Server) EnsureLoadBalancer(ctx context.Context, clusterName string, ser
 }
 
 func (s *Server) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
-	// name := loadBalancerName(clusterName, service)
+	name := loadBalancerName(clusterName, service)
 	if service == nil {
 		return nil
+	}
+	config := &ConfigData{
+		HealthCheckPort: 10256, // kube-proxy default port
+	}
+	if service.Spec.ExternalTrafficPolicy == v1.ServiceExternalTrafficPolicyTypeLocal {
+		config.HealthCheckPort = int(service.Spec.HealthCheckNodePort)
+	}
+
+	backendsV4 := map[string]string{}
+	backendsV6 := map[string]string{}
+	for _, n := range nodes {
+		for _, addr := range n.Status.Addresses {
+			if addr.Type == v1.NodeInternalIP {
+				if netutils.IsIPv4String(addr.Address) {
+					backendsV4[n.Name] = addr.Address
+				} else if netutils.IsIPv6String(addr.Address) {
+					backendsV6[n.Name] = addr.Address
+				}
+			}
+		}
+	}
+
+	// TODO: support UDP and IPv6
+	for _, port := range service.Spec.Ports {
+		if port.Protocol != v1.ProtocolTCP {
+			continue
+		}
+		config.ServicePorts = append(config.ServicePorts, int(port.Port))
+		for server, address := range backendsV4 {
+			config.BackendServers[server] = net.JoinHostPort(address, strconv.Itoa(int(port.Port)))
+		}
+	}
+
+	// create loadbalancer config data
+	loadbalancerConfig, err := Config(config)
+	if err != nil {
+		return errors.Wrap(err, "failed to generate loadbalancer config data")
+	}
+
+	var stdout, stderr bytes.Buffer
+	err = execContainer(name, []string{"cp", "/dev/stdin"}, strings.NewReader(loadbalancerConfig), &stdout, &stderr)
+	if err != nil {
+		return err
+	}
+
+	err = execContainer(name, []string{"kill", "-s", "HUP", "1"}, nil, &stdout, &stderr)
+	if err != nil {
+		return err
 	}
 
 	return nil
