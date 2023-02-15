@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	v1 "k8s.io/api/core/v1"
+	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 
@@ -38,6 +39,8 @@ type Server struct {
 	server xds.Server
 	port   int
 }
+
+var _ cloudprovider.LoadBalancer = &Server{}
 
 func NewServer() *Server {
 	snapshotCache := cache.NewSnapshotCache(false, cache.IDHash{}, nil)
@@ -67,6 +70,7 @@ func (s *Server) Run(ctx context.Context, port int) {
 	)
 	grpcServer := grpc.NewServer(grpcOptions...)
 
+	// TODO listen only in the brige IP
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		log.Fatal(err)
@@ -150,37 +154,29 @@ func (s *Server) EnsureLoadBalancer(ctx context.Context, clusterName string, ser
 		return nil, err
 	}
 
+	// update envoy configuration
 	_, _, err = execContainer(name, []string{"cp", "/dev/stdin", configPath}, strings.NewReader(bootstrap))
 	if err != nil {
 		return nil, fmt.Errorf("failed to apply bootstrap config: %w", err)
 	}
-
 	err = restartContainer(name)
 	if err != nil {
 		return nil, err
 	}
 
-	// get loadbalancer Status
-	ipv4, ipv6, err := containerIPs(name)
+	// update loadbalancer
+	err = s.UpdateLoadBalancer(ctx, clusterName, service, nodes)
 	if err != nil {
 		return nil, err
 	}
-	status := &v1.LoadBalancerStatus{}
-	svcIPv4 := false
-	svcIPv6 := false
-	for _, family := range service.Spec.IPFamilies {
-		if family == v1.IPv4Protocol {
-			svcIPv4 = true
-		}
-		if family == v1.IPv6Protocol {
-			svcIPv6 = true
-		}
+
+	// get loadbalancer Status
+	status, ok, err := s.GetLoadBalancer(ctx, clusterName, service)
+	if !ok {
+		return nil, fmt.Errorf("loadbalancer %s not found", name)
 	}
-	if ipv4 != "" && svcIPv4 {
-		status.Ingress = append(status.Ingress, v1.LoadBalancerIngress{IP: ipv4})
-	}
-	if ipv6 != "" && svcIPv6 {
-		status.Ingress = append(status.Ingress, v1.LoadBalancerIngress{IP: ipv4})
+	if err != nil {
+		return nil, err
 	}
 	return status, nil
 }
