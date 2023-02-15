@@ -25,13 +25,13 @@ func (c *cloud) GetLoadBalancerName(ctx context.Context, clusterName string, ser
 
 // EnsureLoadBalancer creates a new load balancer 'name', or updates the existing one. Returns the status of the balancer
 func (c *cloud) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
-	klog.V(2).Infof("Ensure LoadBalancer cluster: %s service: %s nodes: %v", clusterName, service.Name, nodes)
+	klog.V(2).Infof("Ensure LoadBalancer cluster: %s service: %s", clusterName, service.Name)
 	return c.lbController.EnsureLoadBalancer(ctx, clusterName, service, nodes)
 }
 
 // UpdateLoadBalancer updates hosts under the specified load balancer.
 func (c *cloud) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
-	klog.V(2).Infof("Update LoadBalancer cluster: %s service: %s nodes: %v", clusterName, service.Name, nodes)
+	klog.V(2).Infof("Update LoadBalancer cluster: %s service: %s", clusterName, service.Name)
 	return c.lbController.UpdateLoadBalancer(ctx, clusterName, service, nodes)
 }
 

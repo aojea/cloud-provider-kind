@@ -26,7 +26,7 @@ func init() {
 		}
 		v, ok := logger.(verboser)
 		if ok {
-			v.SetVerbosity(2)
+			v.SetVerbosity(5)
 		}
 
 		provider := cluster.NewProvider(

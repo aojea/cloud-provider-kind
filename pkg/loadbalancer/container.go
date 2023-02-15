@@ -2,16 +2,12 @@ package loadbalancer
 
 import (
 	"io"
-	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/pkg/errors"
 	kindexec "sigs.k8s.io/kind/pkg/exec"
 )
-
-// Image defines the loadbalancer image:tag
-const Image = "kindest/haproxy:v20221220-7705dd1a"
 
 // KIND CONSTANTS
 const fixedNetworkName = "kind"
@@ -32,11 +28,9 @@ func deleteContainer(name string) error {
 	return nil
 }
 
-func restartContainer(name string) error {
-	if err := exec.Command("docker", []string{"restart", name}...).Run(); err != nil {
-		return err
-	}
-	return nil
+func containerExist(name string) bool {
+	err := exec.Command("docker", []string{"inspect", name}...).Run()
+	return err == nil
 }
 
 func execContainer(name string, command []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
@@ -75,30 +69,6 @@ func containerIPs(name string) (ipv4 string, ipv6 string, err error) {
 	ips := strings.Split(lines[0], ",")
 	if len(ips) != 2 {
 		return "", "", errors.Errorf("container addresses should have 2 values, got %d values", len(ips))
-	}
-	return ips[0], ips[1], nil
-}
-
-func networkGateways() (ipv4 string, ipv6 string, err error) {
-	// retrieve the IP address of the docker bridge using docker inspect
-	networkName := fixedNetworkName
-	if n := os.Getenv("KIND_EXPERIMENTAL_DOCKER_NETWORK"); n != "" {
-		networkName = n
-	}
-
-	cmd := kindexec.Command("docker", "network", "inspect", networkName,
-		"-f", "{{range .IPAM.Config}}{{.Gateway}} {{end}}")
-	lines, err := kindexec.OutputLines(cmd)
-	if err != nil {
-		return "", "", errors.Wrap(err, "failed to get gateway details")
-	}
-	if len(lines) != 1 {
-		return "", "", errors.Errorf("file should only be one line, got %d lines", len(lines))
-	}
-	output := strings.TrimSpace(lines[0])
-	ips := strings.Split(output, " ")
-	if len(ips) != 2 {
-		return "", "", errors.Errorf("network gateway should have 2 values, got %d values", len(ips))
 	}
 	return ips[0], ips[1], nil
 }
