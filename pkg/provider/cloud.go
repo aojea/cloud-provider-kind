@@ -6,7 +6,6 @@ import (
 	"github.com/aojea/cloud-provider-kind/cmd/app"
 	"github.com/aojea/cloud-provider-kind/pkg/loadbalancer"
 
-	"k8s.io/apimachinery/pkg/util/wait"
 	cloudprovider "k8s.io/cloud-provider"
 
 	"sigs.k8s.io/kind/pkg/cluster"
@@ -52,12 +51,7 @@ type cloud struct {
 // Initialize passes a Kubernetes clientBuilder interface to the cloud provider
 func (c *cloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stopCh <-chan struct{}) {
 	c.clusterName = app.ClusterName
-
-	// Loadbalancer control-plane
-	ctx, _ := wait.ContextForChannel(stopCh)
-	port := 10001
 	c.lbController = loadbalancer.NewServer()
-	c.lbController.Run(ctx, port)
 }
 
 // Clusters returns the list of clusters.

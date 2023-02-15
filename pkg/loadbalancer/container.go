@@ -10,6 +10,9 @@ import (
 	kindexec "sigs.k8s.io/kind/pkg/exec"
 )
 
+// Image defines the loadbalancer image:tag
+const Image = "gcr.io/distroless/static-debian11:debug"
+
 // KIND CONSTANTS
 const fixedNetworkName = "kind"
 const clusterLabelKey = "io.x-k8s.kind.cluster"
