@@ -8,7 +8,7 @@ import (
 )
 
 // Image defines the loadbalancer image:tag
-const Image = "haproxy:2.2-bullseye"
+const Image = "kindest/haproxy:v20221220-7705dd1a"
 
 // ConfigPath defines the path to the config file in the image
 const ConfigPath = "/usr/local/etc/haproxy/haproxy.cfg"
