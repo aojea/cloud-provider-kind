@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: test-deployment
+  name: policy-cluster
   labels:
-    app: MyApp
+    app: MyClusterApp
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: MyApp
+      app: MyClusterApp
   template:
     metadata:
       labels:
-        app: MyApp
+        app: MyClusterApp
     spec:
       containers:
       - name: agnhost
-        image: k8s.gcr.io/e2e-test-images/agnhost:2.21
+        image: k8s.gcr.io/e2e-test-images/agnhost:2.40
         args:
           - netexec
           - --http-port=8080
@@ -32,7 +32,7 @@ spec:
   type: LoadBalancer
   externalTrafficPolicy: Local
   selector:
-    app: MyApp
+    app: MyClusterApp
   ports:
     - protocol: TCP
       port: 80
