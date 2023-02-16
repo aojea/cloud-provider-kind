@@ -28,6 +28,15 @@ func deleteContainer(name string) error {
 	return nil
 }
 
+func containerIsRunning(name string) bool {
+	cmd := exec.Command("docker", []string{"ps", "-q", "-f", "name=" + name}...)
+	output, err := cmd.Output()
+	if err != nil || len(output) == 0 {
+		return false
+	}
+	return true
+}
+
 func containerExist(name string) bool {
 	err := exec.Command("docker", []string{"inspect", name}...).Run()
 	return err == nil

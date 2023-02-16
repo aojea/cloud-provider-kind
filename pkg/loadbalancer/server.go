@@ -65,6 +65,14 @@ func (s *Server) GetLoadBalancerName(ctx context.Context, clusterName string, se
 
 func (s *Server) EnsureLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) (*v1.LoadBalancerStatus, error) {
 	name := loadBalancerName(clusterName, service)
+	if !containerIsRunning(name) {
+		if containerExist(name) {
+			err := deleteContainer(name)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 	if !containerExist(name) {
 		klog.V(2).Infof("creating container for loadbalancer")
 		err := createLoadBalancer(clusterName, service)
