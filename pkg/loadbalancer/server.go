@@ -160,7 +160,7 @@ func (s *Server) EnsureLoadBalancerDeleted(ctx context.Context, clusterName stri
 
 // loadbalancer name = cluster-name + service.namespace + service.name
 func loadBalancerName(clusterName string, service *v1.Service) string {
-	return clusterName + "-" + service.Namespace + "-" + service.Name
+	return "kindlb-" + clusterName + "-" + service.Namespace + "-" + service.Name
 }
 
 // createLoadBalancer create a docker container with a loadbalancer
