@@ -8,7 +8,7 @@ import (
 )
 
 // Image defines the loadbalancer image:tag
-const Image = "kindest/haproxy:v20221220-7705dd1a"
+const Image = "haproxy:lts-bullseye"
 
 // ConfigPath defines the path to the config file in the image
 const ConfigPath = "/usr/local/etc/haproxy/haproxy.cfg"
@@ -43,9 +43,7 @@ defaults
   default-server init-addr none
 
 frontend service
-{{ range $index, $port := .ServicePorts }}
-  bind *:{{ $port }}
-{{end}}
+{{ range $index, $port := .ServicePorts }}  bind *:{{ $port }}{{end}}
   default_backend nodes
 
 backend nodes

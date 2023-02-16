@@ -145,8 +145,8 @@ func (s *Server) UpdateLoadBalancer(ctx context.Context, clusterName string, ser
 		return err
 	}
 
-	klog.V(2).Infof("restartin loadbalancer")
-	err = execContainer(name, []string{"kill", "-s", "HUP", "1"}, nil, &stdout, &stderr)
+	klog.V(2).Infof("restarting loadbalancer")
+	err = containerSignal(name, "HUP")
 	if err != nil {
 		return err
 	}

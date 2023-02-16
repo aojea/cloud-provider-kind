@@ -33,6 +33,11 @@ func containerExist(name string) bool {
 	return err == nil
 }
 
+func containerSignal(name string, signal string) error {
+	err := exec.Command("docker", []string{"kill", "-s", signal, name}...).Run()
+	return err
+}
+
 func execContainer(name string, command []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
 	args := []string{"exec", "--privileged"}
 	if stdin != nil {
