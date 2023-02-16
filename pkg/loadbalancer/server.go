@@ -1,19 +1,14 @@
 package loadbalancer
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"net"
 	"os"
-	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
-	netutils "k8s.io/utils/net"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 )
 
@@ -54,7 +49,7 @@ func (s *Server) GetLoadBalancer(ctx context.Context, clusterName string, servic
 		status.Ingress = append(status.Ingress, v1.LoadBalancerIngress{IP: ipv4})
 	}
 	if ipv6 != "" && svcIPv6 {
-		status.Ingress = append(status.Ingress, v1.LoadBalancerIngress{IP: ipv4})
+		status.Ingress = append(status.Ingress, v1.LoadBalancerIngress{IP: ipv6})
 	}
 	return status, true, nil
 }
@@ -75,7 +70,7 @@ func (s *Server) EnsureLoadBalancer(ctx context.Context, clusterName string, ser
 	}
 	if !containerExist(name) {
 		klog.V(2).Infof("creating container for loadbalancer")
-		err := createLoadBalancer(clusterName, service)
+		err := createLoadBalancer(clusterName, service, proxyImage)
 		if err != nil {
 			return nil, err
 		}
@@ -101,64 +96,7 @@ func (s *Server) EnsureLoadBalancer(ctx context.Context, clusterName string, ser
 }
 
 func (s *Server) UpdateLoadBalancer(ctx context.Context, clusterName string, service *v1.Service, nodes []*v1.Node) error {
-	name := loadBalancerName(clusterName, service)
-	if service == nil {
-		return nil
-	}
-	config := &proxyConfigData{
-		HealthCheckPort: 10256, // kube-proxy default port
-		BackendServers:  map[string]string{},
-		ServicePorts:    []string{},
-	}
-	if service.Spec.ExternalTrafficPolicy == v1.ServiceExternalTrafficPolicyTypeLocal {
-		config.HealthCheckPort = int(service.Spec.HealthCheckNodePort)
-	}
-
-	backendsV4 := map[string]string{}
-	backendsV6 := map[string]string{}
-	for _, n := range nodes {
-		for _, addr := range n.Status.Addresses {
-			if addr.Type == v1.NodeInternalIP {
-				if netutils.IsIPv4String(addr.Address) {
-					backendsV4[n.Name] = addr.Address
-				} else if netutils.IsIPv6String(addr.Address) {
-					backendsV6[n.Name] = addr.Address
-				}
-			}
-		}
-	}
-
-	// TODO: support UDP and IPv6
-	for _, port := range service.Spec.Ports {
-		if port.Protocol != v1.ProtocolTCP {
-			continue
-		}
-		config.ServicePorts = append(config.ServicePorts, strconv.Itoa(int(port.Port)))
-		for server, address := range backendsV4 {
-			config.BackendServers[server] = net.JoinHostPort(address, strconv.Itoa(int(port.NodePort)))
-		}
-	}
-
-	// create loadbalancer config data
-	loadbalancerConfig, err := proxyConfig(config)
-	if err != nil {
-		return errors.Wrap(err, "failed to generate loadbalancer config data")
-	}
-
-	klog.V(2).Infof("updating loadbalancer with config %s", loadbalancerConfig)
-	var stdout, stderr bytes.Buffer
-	err = execContainer(name, []string{"cp", "/dev/stdin", proxyConfigPath}, strings.NewReader(loadbalancerConfig), &stdout, &stderr)
-	if err != nil {
-		return err
-	}
-
-	klog.V(2).Infof("restarting loadbalancer")
-	err = containerSignal(name, "HUP")
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return proxyUpdateLoadBalancer(ctx, clusterName, service, nodes)
 }
 
 func (s *Server) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
@@ -171,7 +109,7 @@ func loadBalancerName(clusterName string, service *v1.Service) string {
 }
 
 // createLoadBalancer create a docker container with a loadbalancer
-func createLoadBalancer(clusterName string, service *v1.Service) error {
+func createLoadBalancer(clusterName string, service *v1.Service, image string) error {
 	name := loadBalancerName(clusterName, service)
 
 	networkName := fixedNetworkName
@@ -201,7 +139,7 @@ func createLoadBalancer(clusterName string, service *v1.Service) error {
 		"--sysctl=net.ipv6.conf.all.disable_ipv6=0", // enable IPv6
 		"--sysctl=net.ipv6.conf.all.forwarding=1",   // allow ipv6 forwarding
 		"--sysctl=net.ipv4.conf.all.rp_filter=0",    // disable rp filter
-		proxyImage,
+		image,
 	}
 
 	err := createContainer(name, args)
