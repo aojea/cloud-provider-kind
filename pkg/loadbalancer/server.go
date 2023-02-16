@@ -105,7 +105,7 @@ func (s *Server) UpdateLoadBalancer(ctx context.Context, clusterName string, ser
 	if service == nil {
 		return nil
 	}
-	config := &ConfigData{
+	config := &proxyConfigData{
 		HealthCheckPort: 10256, // kube-proxy default port
 		BackendServers:  map[string]string{},
 		ServicePorts:    []string{},
@@ -140,14 +140,14 @@ func (s *Server) UpdateLoadBalancer(ctx context.Context, clusterName string, ser
 	}
 
 	// create loadbalancer config data
-	loadbalancerConfig, err := Config(config)
+	loadbalancerConfig, err := proxyConfig(config)
 	if err != nil {
 		return errors.Wrap(err, "failed to generate loadbalancer config data")
 	}
 
 	klog.V(2).Infof("updating loadbalancer with config %s", loadbalancerConfig)
 	var stdout, stderr bytes.Buffer
-	err = execContainer(name, []string{"cp", "/dev/stdin", ConfigPath}, strings.NewReader(loadbalancerConfig), &stdout, &stderr)
+	err = execContainer(name, []string{"cp", "/dev/stdin", proxyConfigPath}, strings.NewReader(loadbalancerConfig), &stdout, &stderr)
 	if err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func createLoadBalancer(clusterName string, service *v1.Service) error {
 		"--sysctl=net.ipv6.conf.all.disable_ipv6=0", // enable IPv6
 		"--sysctl=net.ipv6.conf.all.forwarding=1",   // allow ipv6 forwarding
 		"--sysctl=net.ipv4.conf.all.rp_filter=0",    // disable rp filter
-		Image,
+		proxyImage,
 	}
 
 	err := createContainer(name, args)

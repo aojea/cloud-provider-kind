@@ -1,11 +1,11 @@
 package loadbalancer
 
 import (
+	"fmt"
 	"io"
 	"os/exec"
 	"strings"
 
-	"github.com/pkg/errors"
 	kindexec "sigs.k8s.io/kind/pkg/exec"
 )
 
@@ -75,14 +75,30 @@ func containerIPs(name string) (ipv4 string, ipv6 string, err error) {
 	)
 	lines, err := kindexec.OutputLines(cmd)
 	if err != nil {
-		return "", "", errors.Wrap(err, "failed to get container details")
+		return "", "", fmt.Errorf("failed to get container details: %w", err)
 	}
 	if len(lines) != 1 {
-		return "", "", errors.Errorf("file should only be one line, got %d lines", len(lines))
+		return "", "", fmt.Errorf("file should only be one line, got %d lines: %w", len(lines), err)
 	}
 	ips := strings.Split(lines[0], ",")
 	if len(ips) != 2 {
-		return "", "", errors.Errorf("container addresses should have 2 values, got %d values", len(ips))
+		return "", "", fmt.Errorf("container addresses should have 2 values, got %d values", len(ips))
 	}
 	return ips[0], ips[1], nil
+}
+
+func containerMac(name string) (string, error) {
+	cmd := kindexec.Command("docker", "inspect",
+		"-f", "{{range .NetworkSettings.Networks}}{{.MacAddress}}{{end}}",
+		name, // ... against the "node" container
+	)
+	lines, err := kindexec.OutputLines(cmd)
+	if err != nil {
+		return "", fmt.Errorf("failed to get container details: %w", err)
+	}
+	if len(lines) != 1 {
+		return "", fmt.Errorf("file should only be one line, got %d lines: %w", len(lines), err)
+	}
+
+	return strings.TrimSpace(lines[1]), nil
 }

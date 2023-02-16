@@ -7,22 +7,22 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Image defines the loadbalancer image:tag
-const Image = "kindest/haproxy:v20221220-7705dd1a"
+// proxyImage defines the loadbalancer image:tag
+const proxyImage = "kindest/haproxy:v20221220-7705dd1a"
 
-// ConfigPath defines the path to the config file in the image
-const ConfigPath = "/usr/local/etc/haproxy/haproxy.cfg"
+// proxyConfigPath defines the path to the config file in the image
+const proxyConfigPath = "/usr/local/etc/haproxy/haproxy.cfg"
 
-// ConfigData is supplied to the loadbalancer config template
-type ConfigData struct {
+// proxyConfigData is supplied to the loadbalancer config template
+type proxyConfigData struct {
 	ServicePorts    []string
 	HealthCheckPort int
 	BackendServers  map[string]string
 	IPv6            bool
 }
 
-// DefaultConfigTemplate is the loadbalancer config template
-const DefaultConfigTemplate = `
+// proxyDefaultConfigTemplate is the loadbalancer config template
+const proxyDefaultConfigTemplate = `
 global
   log /dev/log local0
   log /dev/log local1 notice
@@ -54,10 +54,10 @@ backend nodes
   {{- end}}
 `
 
-// Config returns a kubeadm config generated from config data, in particular
+// proxyConfig returns a kubeadm config generated from config data, in particular
 // the kubernetes version
-func Config(data *ConfigData) (config string, err error) {
-	t, err := template.New("loadbalancer-config").Parse(DefaultConfigTemplate)
+func proxyConfig(data *proxyConfigData) (config string, err error) {
+	t, err := template.New("loadbalancer-config").Parse(proxyDefaultConfigTemplate)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to parse config template")
 	}
