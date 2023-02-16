@@ -133,10 +133,9 @@ func (s *Server) UpdateLoadBalancer(ctx context.Context, clusterName string, ser
 		if port.Protocol != v1.ProtocolTCP {
 			continue
 		}
-		portString := strconv.Itoa(int(port.Port))
-		config.ServicePorts = append(config.ServicePorts, portString)
+		config.ServicePorts = append(config.ServicePorts, strconv.Itoa(int(port.Port)))
 		for server, address := range backendsV4 {
-			config.BackendServers[server] = net.JoinHostPort(address, portString)
+			config.BackendServers[server] = net.JoinHostPort(address, strconv.Itoa(int(port.NodePort)))
 		}
 	}
 

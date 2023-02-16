@@ -48,10 +48,10 @@ frontend service
 
 backend nodes
   option httpchk GET /healthz
-  {{ $hcport := .HealthCheckPort }}
-{{range $server, $address := .BackendServers}}
-  server {{ $server }} {{ $address }} check port {{ $hcport }} inter 5s  fall 3  rise 1
-{{- end}}
+  {{- $hcport := .HealthCheckPort -}}
+  {{- range $server, $address := .BackendServers }}
+  server {{ $server }} {{ $address }} check port {{ $hcport }} inter 5s fall 3 rise 1
+  {{- end}}
 `
 
 // Config returns a kubeadm config generated from config data, in particular
